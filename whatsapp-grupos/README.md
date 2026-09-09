@@ -92,13 +92,13 @@ python3 preparar_contatos.py Lista_Clientes_Set_2026.xlsx \
   --col-tel "tel" \
   --grupo-por-cliente \
   --col-grupo "Comercial" \
-  --prefixo "Cliente - " \
   --comerciais comerciais.json \
   --fixos fixos.json
 ```
 
-Gera 70 grupos: `Cliente - FULANO`, `Cliente - CICLANO`, etc. Aqui `--col-grupo`
-serve só para saber qual comercial entra em cada grupo.
+Gera 70 grupos, cada um com o **nome do cliente** (`FULANO DE TAL`, `CICLANO`, etc.).
+Aqui `--col-grupo` serve só para saber qual comercial entra em cada grupo. Se quiser
+um prefixo no nome do grupo, use `--prefixo "Cliente - "`.
 
 > ⚠️ São **muitos grupos**. Criar 70 grupos de uma vez é o cenário de **maior
 > risco de banimento**. Crie poucos por dia (aumente as pausas no `criar-grupos.js`)
