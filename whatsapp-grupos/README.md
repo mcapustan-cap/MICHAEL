@@ -61,7 +61,8 @@ python3 preparar_contatos.py Lista_Clientes_Set_2026.xlsx \
   --col-tel "tel" \
   --col-grupo "Comercial" \
   --prefixo "Clientes - " \
-  --comerciais comerciais.json
+  --comerciais comerciais.json \
+  --fixos fixos.json
 ```
 
 Isso cria um grupo para cada vendedor: `Clientes - AUGUSTO`, `Clientes - EDUARDO`, etc.
@@ -69,6 +70,15 @@ Isso cria um grupo para cada vendedor: `Clientes - AUGUSTO`, `Clientes - EDUARDO
 O `--comerciais comerciais.json` é **opcional**: se você preencher os telefones
 em `comerciais.json`, cada comercial é incluído automaticamente no próprio grupo.
 Deixe em branco os que não quiser incluir.
+
+O `--fixos fixos.json` também é **opcional**: os contatos listados em `fixos.json`
+entram em **todos** os grupos (ex.: o Pós Venda, um supervisor). Formato:
+
+```json
+[
+  { "nome": "Pos Venda", "telefone": "51 9228-8548" }
+]
+```
 
 ### Opção B — Um único grupo com todos (aba "tel")
 

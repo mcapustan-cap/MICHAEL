@@ -100,6 +100,7 @@ def main():
     p.add_argument("--prefixo", default="", help="Prefixo do nome de cada grupo (usado com --col-grupo)")
     p.add_argument("--nome-grupo", help="Nome do grupo único (usado quando NÃO há --col-grupo)")
     p.add_argument("--comerciais", help="(Opcional) JSON {\"NOME_DO_COMERCIAL\": \"telefone\"} para incluir cada comercial no próprio grupo")
+    p.add_argument("--fixos", help="(Opcional) JSON [{\"nome\": \"...\", \"telefone\": \"...\"}] de contatos que entram em TODOS os grupos")
     p.add_argument("--saida", default="contatos.json", help="Arquivo JSON de saída (padrão: contatos.json)")
     args = p.parse_args()
 
@@ -125,6 +126,23 @@ def main():
                 comerciais[limpar_nome(chave)] = norm
             else:
                 print(f'Aviso: telefone do comercial "{chave}" inválido, ignorado: {tel}')
+
+    # Contatos fixos (entram em TODOS os grupos): [{"nome": "...", "telefone": "..."}]
+    fixos = []
+    if args.fixos:
+        with open(args.fixos, encoding="utf-8") as f:
+            for item in json.load(f):
+                if not str(item.get("telefone") or "").strip():
+                    continue
+                norm = normalizar_telefone(item["telefone"])
+                if norm:
+                    fixos.append({
+                        "nome": limpar_nome(item.get("nome")) or "Contato fixo",
+                        "telefone": norm["e164"],
+                        "incerto": norm["incerto"],
+                    })
+                else:
+                    print(f'Aviso: telefone do contato fixo "{item.get("nome")}" inválido, ignorado: {item["telefone"]}')
 
     grupos = {}          # nome_grupo -> lista de contatos
     vistos = set()       # dedup por (grupo, e164)
@@ -173,6 +191,15 @@ def main():
             )
             comerciais_incluidos += 1
 
+    # Adiciona os contatos fixos em TODOS os grupos (sem duplicar).
+    fixos_incluidos = 0
+    for fixo in fixos:
+        for nome_grupo, lista in grupos.items():
+            if any(c["telefone"] == fixo["telefone"] for c in lista):
+                continue
+            lista.append(dict(fixo))
+            fixos_incluidos += 1
+
     saida = {
         "grupos": [
             {"nome": g, "contatos": c} for g, c in sorted(grupos.items())
@@ -189,6 +216,9 @@ def main():
           f'Incertos (10 díg.): {incertos} | Ignorados sem telefone: {len(ignorados)}')
     if comerciais:
         print(f'Comerciais incluídos em seus grupos: {comerciais_incluidos}')
+    if fixos:
+        print(f'Contatos fixos em todos os grupos: {len(fixos)} '
+              f'({", ".join(x["nome"] for x in fixos)})')
     print()
     for g in saida["grupos"]:
         print(f'  - {g["nome"]}: {len(g["contatos"])} contatos')
