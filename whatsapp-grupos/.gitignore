@@ -1,0 +1,15 @@
+# Dependências
+node_modules/
+
+# Sessão autenticada do WhatsApp (NÃO versionar — dá acesso à sua conta)
+.wwebjs_auth/
+.wwebjs_cache/
+
+# Dados gerados
+contatos.json
+relatorio-grupos.json
+
+# Planilhas de clientes (dados pessoais — não versionar)
+*.xlsx
+*.xls
+*.csv

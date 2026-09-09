@@ -1,0 +1,14 @@
+{
+  "name": "whatsapp-grupos",
+  "version": "1.0.0",
+  "description": "Cria grupos de WhatsApp a partir de uma lista de contatos (planilha .xlsx).",
+  "private": true,
+  "scripts": {
+    "criar": "node criar-grupos.js contatos.json",
+    "simular": "node criar-grupos.js contatos.json --simular"
+  },
+  "dependencies": {
+    "qrcode-terminal": "^0.12.0",
+    "whatsapp-web.js": "^1.26.0"
+  }
+}
