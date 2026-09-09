@@ -97,15 +97,19 @@ def main():
     p.add_argument("--col-nome", required=True, help="Nome da coluna com o nome do contato")
     p.add_argument("--col-tel", required=True, help="Nome da coluna com o telefone")
     p.add_argument("--col-grupo", help="Coluna que define o grupo (ex.: Comercial). Se ausente, cria um único grupo.")
-    p.add_argument("--prefixo", default="", help="Prefixo do nome de cada grupo (usado com --col-grupo)")
+    p.add_argument("--grupo-por-cliente", action="store_true",
+                   help="Cria UM grupo para CADA cliente (cada linha vira um grupo). "
+                        "Use --col-grupo apontando para a coluna do comercial para incluí-lo no grupo.")
+    p.add_argument("--prefixo", default="", help="Prefixo do nome de cada grupo")
     p.add_argument("--nome-grupo", help="Nome do grupo único (usado quando NÃO há --col-grupo)")
     p.add_argument("--comerciais", help="(Opcional) JSON {\"NOME_DO_COMERCIAL\": \"telefone\"} para incluir cada comercial no próprio grupo")
     p.add_argument("--fixos", help="(Opcional) JSON [{\"nome\": \"...\", \"telefone\": \"...\"}] de contatos que entram em TODOS os grupos")
     p.add_argument("--saida", default="contatos.json", help="Arquivo JSON de saída (padrão: contatos.json)")
     args = p.parse_args()
 
-    if not args.col_grupo and not args.nome_grupo:
-        p.error("informe --col-grupo (vários grupos) OU --nome-grupo (um único grupo).")
+    if not args.grupo_por_cliente and not args.col_grupo and not args.nome_grupo:
+        p.error("informe --grupo-por-cliente (um grupo por cliente), "
+                "--col-grupo (vários grupos por coluna) OU --nome-grupo (um único grupo).")
 
     df = pd.read_excel(args.planilha, sheet_name=args.aba)
 
@@ -148,6 +152,8 @@ def main():
     vistos = set()       # dedup por (grupo, e164)
     ignorados = []       # linhas sem telefone válido
     incertos = 0
+    comerciais_incluidos = 0
+    usados_nome = {}     # controle de nomes de grupo repetidos (modo por cliente)
 
     for _, linha in df.iterrows():
         nome = limpar_nome(linha[args.col_nome])
@@ -161,6 +167,27 @@ def main():
         if tel["incerto"]:
             incertos += 1
 
+        if args.grupo_por_cliente:
+            # Cada cliente vira um grupo próprio (nome único, mesmo se houver homônimos).
+            base = f"{args.prefixo}{nome}"
+            usados_nome[base] = usados_nome.get(base, 0) + 1
+            nome_grupo = base if usados_nome[base] == 1 else f"{base} ({usados_nome[base]})"
+            grupos[nome_grupo] = [
+                {"nome": nome, "telefone": tel["e164"], "incerto": tel["incerto"]}
+            ]
+            # Inclui o comercial daquele cliente (coluna --col-grupo), se houver telefone.
+            if args.col_grupo:
+                chave_com = limpar_nome(linha[args.col_grupo])
+                com = comerciais.get(chave_com)
+                if com and com["e164"] != tel["e164"]:
+                    grupos[nome_grupo].append(
+                        {"nome": f"{chave_com} (comercial)", "telefone": com["e164"],
+                         "incerto": com["incerto"]}
+                    )
+                    comerciais_incluidos += 1
+            continue
+
+        # Modos "vários grupos por coluna" ou "grupo único".
         if args.col_grupo:
             chave = limpar_nome(linha[args.col_grupo]) or "SEM_GRUPO"
             nome_grupo = f"{args.prefixo}{chave}"
@@ -176,9 +203,8 @@ def main():
             {"nome": nome, "telefone": tel["e164"], "incerto": tel["incerto"]}
         )
 
-    # Inclui cada comercial no próprio grupo (se um telefone foi fornecido).
-    comerciais_incluidos = 0
-    if comerciais and args.col_grupo:
+    # Inclui cada comercial no próprio grupo (modo "vários grupos por comercial").
+    if comerciais and args.col_grupo and not args.grupo_por_cliente:
         for chave, tel in comerciais.items():
             nome_grupo = f"{args.prefixo}{chave}"
             if nome_grupo not in grupos:
@@ -220,8 +246,11 @@ def main():
         print(f'Contatos fixos em todos os grupos: {len(fixos)} '
               f'({", ".join(x["nome"] for x in fixos)})')
     print()
-    for g in saida["grupos"]:
+    LIMITE = 15
+    for g in saida["grupos"][:LIMITE]:
         print(f'  - {g["nome"]}: {len(g["contatos"])} contatos')
+    if len(saida["grupos"]) > LIMITE:
+        print(f'  ... e mais {len(saida["grupos"]) - LIMITE} grupo(s).')
 
     if ignorados:
         print()

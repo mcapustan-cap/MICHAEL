@@ -80,7 +80,31 @@ entram em **todos** os grupos (ex.: o Pós Venda, um supervisor). Formato:
 ]
 ```
 
-### Opção B — Um único grupo com todos (aba "tel")
+### Opção B — Um grupo para CADA cliente (atendimento individual)
+
+Cria um grupo por cliente, contendo o cliente + o comercial dele + os contatos
+fixos (ex.: Pós Venda):
+
+```bash
+python3 preparar_contatos.py Lista_Clientes_Set_2026.xlsx \
+  --aba "Por Comercial" \
+  --col-nome "Nome" \
+  --col-tel "tel" \
+  --grupo-por-cliente \
+  --col-grupo "Comercial" \
+  --prefixo "Cliente - " \
+  --comerciais comerciais.json \
+  --fixos fixos.json
+```
+
+Gera 70 grupos: `Cliente - FULANO`, `Cliente - CICLANO`, etc. Aqui `--col-grupo`
+serve só para saber qual comercial entra em cada grupo.
+
+> ⚠️ São **muitos grupos**. Criar 70 grupos de uma vez é o cenário de **maior
+> risco de banimento**. Crie poucos por dia (aumente as pausas no `criar-grupos.js`)
+> e teste sempre com `--simular` primeiro.
+
+### Opção C — Um único grupo com todos (aba "tel")
 
 ```bash
 python3 preparar_contatos.py Lista_Clientes_Set_2026.xlsx \
